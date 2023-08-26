@@ -17,7 +17,25 @@ navigator.mediaDevices.getUserMedia({
 }).then((stream)=>{
     mystream = stream
     addVideoStream(myvideo,mystream)
+    socket.on("user-connected",(userId)=>{
+        connectToNewUser(userId,stream)
+    })
+    peer.on("call",(call)=>{
+        call.answer(stream)
+        const video = document.createElement("video")
+        call.on("stream",(uservideostream)=>{
+            addVideoStream(video,uservideostream)
+        })
+    })
 })
+
+function connectToNewUser(userId,stream){
+    const call = peer.call(userId,stream)
+    const video = document.createElement("video")
+    call.on("stream",(uservideostream)=>{
+        addVideoStream(video,uservideostream)
+    })
+}
 
 function addVideoStream(video,stream){
     video.srcObject = stream
@@ -38,7 +56,6 @@ $(function () {
         $(".right-window").css("display", "none")
         $(".header_back").css("display", "none")
     })
-
     $("#send").click(function () {
         if ($("#chat_message").val().length !== 0) {
             socket.emit("message", $("#chat_message").val());
@@ -52,7 +69,21 @@ $(function () {
             $("#chat_message").val("");
         }
     })
-
+    $("#mute_button").click(function (){
+        const enabled = mystream.getAudioTracks()[0].enabled
+        if(enabled){
+            mystream.getAudioTracks()[0].enabled = false
+            html = `<i class="fas fa-microphone-slash"></i>`
+            $("#mute_button").toggleClass("background_red")
+            $("#mute_button").html(html)
+        }
+        else{
+            mystream.getAudioTracks()[0].enabled = true
+            html = `<i class="fas fa-microphone"></i>`
+            $("#mute_button").toggleClass("background_red")
+            $("#mute_button").html(html)
+        }
+    })
 })
 
 peer.on("open", (id) => {
